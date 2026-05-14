@@ -6,7 +6,11 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-from agent import create_kaggle_agent
+try:
+    from .agent import create_kaggle_agent
+except ImportError:
+    from agent import create_kaggle_agent
+
 from langchain_core.messages import HumanMessage
 
 load_dotenv()
@@ -81,7 +85,10 @@ class ChatRequest(BaseModel):
 
 @app.post("/api/chat")
 async def chat_with_grandmaster(request: ChatRequest):
-    from agent import call_llm
+    try:
+        from .agent import call_llm
+    except ImportError:
+        from agent import call_llm
     prompt = f"""
     You are a Kaggle Grandmaster and Python Expert.
     User Question: {request.message}
