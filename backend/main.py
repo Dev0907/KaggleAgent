@@ -35,7 +35,8 @@ async def event_generator(request: RunRequest):
         "data": "",
         "approaches": "",
         "winners": "",
-        "discussion": ""
+        "discussion": "",
+        "external_links": ""
     }
     
     yield json.dumps({"type": "log", "message": f"Starting task for URL: {request.url}"}) + "\n"
@@ -51,40 +52,14 @@ async def event_generator(request: RunRequest):
                 }) + "\n"
                 
                 # Send the actual data components to display in the UI cards
-                if "explanation" in state_update and state_update["explanation"]:
-                    yield json.dumps({
-                        "type": "content_update",
-                        "section": "explanation",
-                        "content": state_update["explanation"]
-                    }) + "\n"
-                
-                if "data" in state_update and state_update["data"]:
-                    yield json.dumps({
-                        "type": "content_update",
-                        "section": "data",
-                        "content": state_update["data"]
-                    }) + "\n"
-                
-                if "approaches" in state_update and state_update["approaches"]:
-                    yield json.dumps({
-                        "type": "content_update",
-                        "section": "approaches",
-                        "content": state_update["approaches"]
-                    }) + "\n"
-                
-                if "winners" in state_update and state_update["winners"]:
-                    yield json.dumps({
-                        "type": "content_update",
-                        "section": "winners",
-                        "content": state_update["winners"]
-                    }) + "\n"
-                
-                if "discussion" in state_update and state_update["discussion"]:
-                    yield json.dumps({
-                        "type": "content_update",
-                        "section": "discussion",
-                        "content": state_update["discussion"]
-                    }) + "\n"
+                sections = ["explanation", "data", "approaches", "winners", "discussion", "external_links"]
+                for section in sections:
+                    if section in state_update and state_update[section]:
+                        yield json.dumps({
+                            "type": "content_update",
+                            "section": section,
+                            "content": state_update[section]
+                        }) + "\n"
                 
                 await asyncio.sleep(0.5)
                 
@@ -95,6 +70,28 @@ async def event_generator(request: RunRequest):
         
     except Exception as e:
         yield json.dumps({"type": "error", "message": str(e)}) + "\n"
+
+class ChatRequest(BaseModel):
+    message: str
+    context: str
+
+@app.post("/api/chat")
+async def chat_with_grandmaster(request: ChatRequest):
+    from agent import call_llm
+    prompt = f"""
+    You are a Kaggle Grandmaster and Python Expert.
+    User Question: {request.message}
+    
+    CONTEXT ABOUT THE COMPETITION:
+    {request.context}
+    
+    TASK: Answer the user's question with deep technical expertise. 
+    - If they ask about python code, provide clean, optimized snippets.
+    - If they ask about strategies, refer to the provided context and historical winning patterns.
+    - Be professional, detailed, and acts as a high-level mentor.
+    """
+    response = call_llm(prompt)
+    return {"response": response}
 
 @app.post("/api/run")
 async def run_agent(request: RunRequest):

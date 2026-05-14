@@ -17,6 +17,7 @@ class AgentState(TypedDict):
     approaches: str
     winners: str
     discussion: str
+    external_links: str
 
 def extract_slug(url: str) -> str:
     match = re.search(r'kaggle\.com/competitions/([^/]+)', url)
@@ -194,17 +195,42 @@ def create_kaggle_agent():
         }
 
 
+    # Node 6: External Code Hunter (GitHub & Article Scout)
+    def code_hunter_node(state: AgentState):
+        slug = state.get("slug", "competition")
+        search_results = search_web(f"site:github.com Kaggle {slug} winning code github repo similar competitions")
+        search_results += "\n" + search_web(f"Kaggle {slug} technical medium article writeup research paper")
+        
+        prompt = f"""
+        Competition: {slug}
+        Context: {search_results}
+        
+        TASK: Find and link to ELITE external resources.
+        1. GITHUB REPOS: Find 3-5 high-quality GitHub repositories that implement winning or high-performing strategies for {slug} or very similar competitions.
+        2. TECHNICAL ARTICLES: Find links to Medium, Substack, or personal blog writeups from Top 10 finishers.
+        3. RESEARCH PAPERS: Are there specific papers (e.g., from ArXiv) that are being referenced as the backbone for this competition's best models?
+        
+        FORMAT: Use a clean list with [Title](URL) format. Provide a 1-sentence summary for WHY each link is valuable.
+        """
+        links_info = call_llm(prompt)
+        
+        return {
+            "external_links": links_info
+        }
+
     workflow.add_node("explanation", explanation_node)
     workflow.add_node("data", data_node)
     workflow.add_node("approaches", approaches_node)
     workflow.add_node("winners", winners_node)
     workflow.add_node("discussion", discussion_node)
+    workflow.add_node("code_hunter", code_hunter_node)
 
     workflow.set_entry_point("explanation")
     workflow.add_edge("explanation", "data")
     workflow.add_edge("data", "approaches")
     workflow.add_edge("approaches", "winners")
     workflow.add_edge("winners", "discussion")
-    workflow.add_edge("discussion", END)
+    workflow.add_edge("discussion", "code_hunter")
+    workflow.add_edge("code_hunter", END)
 
     return workflow.compile()

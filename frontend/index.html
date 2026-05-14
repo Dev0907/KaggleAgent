@@ -39,6 +39,9 @@
             <header class="top-header">
                 <h2><i class="fa-solid fa-earth-americas" style="color:var(--primary-color)"></i> Universal Kaggle Agent Analyzer</h2>
                 <div class="header-actions">
+                    <button id="download-report-btn" class="report-btn" style="display:none;">
+                        <i class="fa-solid fa-file-export"></i> Download Report
+                    </button>
                     <span class="status-badge"><span class="status-dot"></span> Elite Intelligence Active</span>
                 </div>
             </header>
@@ -82,17 +85,22 @@
                                     <div class="edge"></div>
                                     <div class="node pending" id="node-approaches">
                                         <i class="fa-solid fa-clock-rotate-left"></i>
-                                        <span>Past Approaches</span>
+                                        <span>Approaches</span>
                                     </div>
                                     <div class="edge"></div>
                                     <div class="node pending" id="node-winners">
                                         <i class="fa-solid fa-trophy"></i>
-                                        <span>Winner Insights</span>
+                                        <span>Winners</span>
                                     </div>
                                     <div class="edge"></div>
                                     <div class="node pending" id="node-discussion">
-                                        <i class="fa-solid fa-comments"></i>
-                                        <span>Forum Intel</span>
+                                        <i class="fa-solid fa-fire"></i>
+                                        <span>Forum</span>
+                                    </div>
+                                    <div class="edge"></div>
+                                    <div class="node pending" id="node-code_hunter">
+                                        <i class="fa-solid fa-magnifying-glass"></i>
+                                        <span>Code Scout</span>
                                     </div>
                                 </div>
                                 
@@ -134,11 +142,34 @@
                             <h3><i class="fa-solid fa-fire"></i> Most Voted Discussions & Hot Community Intel</h3>
                             <div class="card-content" id="content-discussion">Loading...</div>
                         </div>
+
+                        <!-- External Links -->
+                        <div class="info-card" id="card-external_links">
+                            <h3><i class="fa-brands fa-github"></i> Elite Code Hunter: GitHub Repos & Articles</h3>
+                            <div class="card-content" id="content-external_links">Loading...</div>
+                        </div>
                     </div>
 
                 </div>
             </div>
         </main>
+
+        <!-- Chat Widget -->
+        <div id="chat-widget" class="chat-widget">
+            <div class="chat-header" id="chat-header">
+                <i class="fa-solid fa-robot"></i> Ask the Grandmaster
+                <span class="chat-toggle"><i class="fa-solid fa-chevron-up"></i></span>
+            </div>
+            <div class="chat-body" id="chat-body">
+                <div class="chat-messages" id="chat-messages">
+                    <div class="message bot-message">Hello! I am your Kaggle Grandmaster mentor. After the analysis is complete, you can ask me deep technical questions about code, strategies, or specific competition hurdles.</div>
+                </div>
+                <div class="chat-input-area">
+                    <input type="text" id="chat-input" placeholder="Type your question...">
+                    <button id="send-chat-btn"><i class="fa-solid fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
     </div>
     
     <script src="script.js"></script>
