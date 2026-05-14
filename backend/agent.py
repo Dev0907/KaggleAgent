@@ -50,13 +50,7 @@ def call_llm(prompt: str) -> str:
             response = llm.invoke(prompt)
             return response.content
         except Exception as e:
-            # Fallback to a simpler model if 3.3 is offline
-            try:
-                llm = ChatGroq(model="llama3-70b-8192", groq_api_key=api_key)
-                response = llm.invoke(prompt)
-                return response.content
-            except Exception as e2:
-                return f"Mocked response (LLM error: {str(e2)})"
+            return f"Model Error (GPT-OSS 120B): {str(e)}"
     else:
         time.sleep(2)
         return f"Mocked LLM generation based on prompt: {prompt[:30]}..."
