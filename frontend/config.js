@@ -4,8 +4,8 @@
 
 const CONFIG = {
     // API URL for the backend service
-    // Default to localhost for development
+    // Automatically detects if running on localhost or a production domain like Replit
     API_BASE: (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
         ? 'http://localhost:8000'
-        : 'https://your-appwrite-function-or-render-url.com', // Update this for production
+        : window.location.origin, // Use the current origin for Replit/Production
 };

@@ -1,0 +1,10 @@
+run = "python main.py"
+
+[nix]
+channel = "stable-23_11"
+
+[deployment]
+run = ["python", "backend/main.py"]
+
+[env]
+PYTHONPATH = "backend"
