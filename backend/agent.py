@@ -41,9 +41,8 @@ def search_web(query: str) -> str:
         return f"Mocked search results for: {query}"
 
 def call_llm(prompt: str) -> str:
-    # The user asked for a large open-source model available via Groq.
-    # llama-3.3-70b-versatile is currently the top tier on Groq.
-    model_name = "llama-3.3-70b-versatile"
+    # Using the elite GPT-OSS 120B model on Groq for high-fidelity reasoning
+    model_name = "gpt-oss-120b"
     api_key = os.environ.get("GROQ_API_KEY")
     if api_key and api_key != "your_groq_api_key_here":
         try:

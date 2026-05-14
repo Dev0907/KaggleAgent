@@ -3,7 +3,6 @@ import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
@@ -16,24 +15,15 @@ app = FastAPI(title="Kaggle Agent API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"], # In production, you can replace this with your Vercel URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Mount the frontend directory to serve the UI
-# This assumes the 'frontend' folder is at the same level as the 'backend' folder
-# When running from the root directory of the project
-import os
-frontend_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
-if os.path.exists(frontend_path):
-    app.mount("/", StaticFiles(directory=frontend_path, html=True), name="static")
-else:
-    # Fallback if running directly from backend dir
-    frontend_path = os.path.join(os.path.dirname(__file__), "..", "frontend")
-    if os.path.exists(frontend_path):
-        app.mount("/", StaticFiles(directory=frontend_path, html=True), name="static")
+@app.get("/")
+async def health_check():
+    return {"status": "online", "message": "Kaggle Agent API is running"}
 
 class RunRequest(BaseModel):
     url: str
@@ -113,4 +103,6 @@ async def run_agent(request: RunRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import os
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)

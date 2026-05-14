@@ -3,9 +3,9 @@
 // In production, you can replace these values or set them via your hosting provider.
 
 const CONFIG = {
-    // API URL for the backend service
-    // Automatically detects if running on localhost or a production domain like Replit
+    // API URL for the backend service (Render)
+    // Localhost for development, Render URL for production
     API_BASE: (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
         ? 'http://localhost:8000'
-        : window.location.origin, // Use the current origin for Replit/Production
+        : 'https://your-kaggle-agent-backend.onrender.com', // 👈 REPLACE THIS with your Render Web Service URL
 };
