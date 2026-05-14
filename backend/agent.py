@@ -44,7 +44,7 @@ def search_web(query: str) -> str:
 
 def call_llm(prompt: str, system_message: str = "You are a Kaggle Grandmaster and Search Expert.") -> str:
     """Calls the GPT-OSS 120B model with tool-calling for end-to-end search and reasoning."""
-    model_name = "gpt-oss-120b"
+    model_name = "openai/gpt-oss-120b"
     api_key = os.environ.get("GROQ_API_KEY")
     
     if not api_key or api_key == "your_groq_api_key_here":
