@@ -64,25 +64,26 @@ def call_llm(prompt: str) -> str:
 def create_kaggle_agent():
     workflow = StateGraph(AgentState)
     
-    # Node 1: Universal Explanation
+    # Node 1: Universal Explanation (The Grandmaster Overview)
     def explanation_node(state: AgentState):
         url = state["competition"]
         slug = extract_slug(url)
         
-        # Deep search across multiple vectors
-        search_results = search_web(f"Kaggle competition {slug} overview task goal objective problem statement")
+        # Searching for current objective and historical context
+        search_results = search_web(f"Kaggle competition {slug} objective challenges system problems historical context")
         
         prompt = f"""
         Competition: {slug}
         URL: {url}
-        Search Context: {search_results}
+        Context: {search_results}
         
-        Task: Provide an Elite Universal Analysis of this Kaggle competition.
-        1. Core Mission: What is the primary problem being solved?
-        2. Impact: Why does this competition exist? (Scientific, commercial, or social value).
-        3. Challenge Level: How difficult is this for a beginner vs. an expert?
+        TASK: Act as a Kaggle Grandmaster. Provide a Deep Strategic Analysis.
+        1. THE MISSION: What is the specific predictive task?
+        2. THE VALUE: Why does this matter? Real-world impact?
+        3. CRITICAL SYSTEM PROBLEMS: Deep-dive into the "tricky" technical hurdles. Identify noise, data distribution shifts, non-stationarity, or memory constraints. Detail these "system problems" enough so a user understands exactly why this is a hard problem.
+        4. DOMAIN ARCHETYPE: Is this a 'Universal' Time-Series, Computer Vision, or Tabular challenge?
         
-        Explain in a high-octane, engaging, and clear manner. Use Grandmaster-level terminology but keep it accessible.
+        Format using professional markdown. Use callouts or bold text for emphasis.
         """
         summary = call_llm(prompt)
         
@@ -91,21 +92,22 @@ def create_kaggle_agent():
             "explanation": summary
         }
 
-    # Node 2: Universal Data Dissection
+    # Node 2: Universal Data Dissection (Deep Architectural Audit)
     def data_node(state: AgentState):
         slug = state.get("slug", "competition")
-        search_results = search_web(f"Kaggle {slug} dataset EDA features target leak validation strategy")
+        # Targeting official data descriptions
+        search_results = search_web(f"site:kaggle.com/competitions/{slug}/data Kaggle competition data description target variable")
         
         prompt = f"""
         Competition: {slug}
-        Search Context: {search_results}
+        Context: {search_results}
         
-        Task: Perform a deep-dive data architectural analysis.
-        - Structure: Breakdown training/testing sets, sample submission, and supplementary files.
-        - Target: Deep analysis of the target variable and its distribution.
-        - Features: Key numerical/categorical/text/image features to watch for.
-        - Evaluation: Critical analysis of the metric (e.g., LogLoss, MAE, F1) and what it implies for model bias.
-        Format with professional data-science headers.
+        TASK: Perform an Elite Data Audit.
+        1. DATA STRUCTURE: Describe the file hierarchy (train/test/supplemental).
+        2. TARGET ANALYSIS: What exactly are we predicting? Is it a continuous value (regression) or a class (classification)? 
+        3. KEY FEATURES: Highlight critical feature groups (e.g., technical indicators, fundamental data, anonymized sensors).
+        4. THE EVALUATION: Deep-dive into the metric (e.g., Sharpe Ratio, Pearson Correlation, RMSE). What does this metric reward (e.g., consistency vs. outlier accuracy)?
+        5. DATA CHALLENGES: Identify leaks, missing values, or specific temporal constraints (e.g., no future-looking).
         """
         data_desc = call_llm(prompt)
         
@@ -113,24 +115,26 @@ def create_kaggle_agent():
             "data": data_desc
         }
 
-    # Node 3: Elite Approaches (The Top 3)
+    # Node 3: Elite Approaches (The Top 3 & Feasible Entry)
     def approaches_node(state: AgentState):
         slug = state.get("slug", "competition")
-        search_results = search_web(f"Kaggle {slug} similar competitions winning solutions historical SOTA")
+        # Targeting high-voted code and top solutions
+        search_results = search_web(f"site:kaggle.com/competitions/{slug}/code?sort=votes Kaggle top solutions winning approaches strategy")
         
         prompt = f"""
         Competition: {slug}
-        Search Context: {search_results}
+        Context: {search_results}
         
-        Task: Architect the TOP 3 FINEST approaches for this competition.
-        Analyze similar historical Kaggle competitions (e.g., 'past versions of {slug}' or 'similar domain competitions').
+        TASK: Architect 3 "Grandmaster" Approaches based on High-Voted Code & Solutions.
+        Analyze similar historical competitions or the specific top-voted notebooks for {slug}.
         
-        For each of the 3 approaches, provide:
-        - 🔥 Name: A catchy, professional name for the strategy.
-        - 🛠️ Architecture: The model stack (e.g., XGBoost + CNN + Transformer).
-        - 💡 Logic: Why this is a winning strategy for THIS data.
+        FOR EACH APPROACH PROVIDE:
+        - 🔥 STRATEGY NAME: (e.g., "The Temporal Transformer Blend")
+        - 🛠️ THE ARCHITECTURE: List the specific models (e.g., LightGBM, LSTM, TabNet).
+        - 💡 THE RATIONALE: Why does this specific architecture beat the baseline?
+        - 🧪 FEATURE ENGINEERING: One unique feature idea for this approach extracted from top-voted kernels.
         
-        🎯 CONCLUDE WITH: The "Most Feasible Grandmaster Approach" for an immediate start.
+        🎯 FINAL VERDICT: Define the "Universal Most Feasible Approach" for a fast-start submission that can hit the top 20%.
         """
         approaches = call_llm(prompt)
         
@@ -138,20 +142,27 @@ def create_kaggle_agent():
             "approaches": approaches
         }
 
-    # Node 4: Grandmaster Secret Sauce
+    # Node 4: Grandmaster Secret Sauce (The Winning Edge)
     def winners_node(state: AgentState):
         slug = state.get("slug", "competition")
-        search_results = search_web(f"Kaggle {slug} winner solution writeup secret sauce tricks validation leak")
+        # Specifically searching for top 5 solutions from this or previous versions
+        search_results = search_web(f"Kaggle {slug} top 5 winning solutions previous years technical writeup gold medal")
         
         prompt = f"""
         Competition: {slug}
-        Search Context: {search_results}
+        Context: {search_results}
         
-        Task: Extract the "Secret Sauce" from previous winners or top solutions in this domain.
-        Focus on the "1% differences" - the tiny tricks that push a model to 1st place:
-        - Validation strategies that prevent overfitting.
-        - Specific feature engineering (e.g., target encoding, time-series lags, image augmentations).
-        - Post-processing or ensemble blending techniques.
+        TASK: Deep-Dive into the TOP 5 WINNING SOLUTIONS.
+        If this competition was held before (or has similar archetypes), identify the Top 5 approaches that secured Gold.
+        
+        FOR EACH OF THE TOP 5 SOLUTIONS, DETAIL:
+        1. 🏆 RANK & USER: Who was it?
+        2. 🧠 CORE IDEA: The "Aha!" moment or unique architecture (e.g., GBDT-NN blend, Denoising Autoencoder).
+        3. 🛠️ TECHNICAL STACK: Key libraries and models.
+        4. 📈 CV vs LB: How did they ensure stable validation?
+        5. ✨ THE "SECRET SAUCE": The specific trick (e.g., specific augmentation, post-processing) that gave them the edge.
+        
+        FORMAT: Use a clean, section-wise markdown layout with horizontal rules between solutions. Make it look professional and "Elite".
         """
         winners_info = call_llm(prompt)
         
@@ -159,20 +170,22 @@ def create_kaggle_agent():
             "winners": winners_info
         }
 
-    # Node 5: Universal Community Intel
+    # Node 5: Universal Forum Intel (The Pulse of the Crowd)
     def discussion_node(state: AgentState):
         slug = state.get("slug", "competition")
-        search_results = search_web(f"Kaggle {slug} forum discussion bugs tips notebooks gold")
+        # Targeting high-voted discussions and kernels specifically
+        search_results = search_web(f"site:kaggle.com/competitions/{slug}/discussion?sort=votes Kaggle most upvoted forum topics strategy")
         
         prompt = f"""
         Competition: {slug}
-        Search Context: {search_results}
+        Context: {search_results}
         
-        Task: Sift through the Kaggle community buzz for {slug}.
-        - Critical Bugs: Are there data leaks, metric issues, or hidden files being discussed?
-        - Community Observations: What are the current 'hot takes' on the leaderboard?
-        - Golden Tips: Actionable advice shared by Kaggle Grandmasters in the forums.
-        Make this feel like a high-level intelligence briefing.
+        TASK: Provide a "Most Upvoted & Hot Community Intelligence Briefing".
+        - THE TOP-VOTED BUZZ: What are the most upvoted discussions? Identify the specific "hot" topics Grandmasters are debating.
+        - ELITE APPROACHES FROM FORUMS: Extract specific strategies or "meta-approaches" mentioned in highly upvoted comments.
+        - CRITICAL ALERTS & LEAKS: Any high-voted alerts regarding data leakage, CV-LB discrepancy, or metric bugs?
+        - GOLDEN KERNELS: Identify the most "starred" or "forked" notebooks and what unique logic they contain.
+        - PROPER WORKFLOWS: Summarize the community-endorsed "proper way" to handle the validation for this specific competition.
         """
         discussion_info = call_llm(prompt)
         

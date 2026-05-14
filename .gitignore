@@ -21,6 +21,8 @@ __pycache__/
 
 # Backend
 backend/venv/
+backend/kegel/
+kegel/
 
 # Ignore node_modules if added later
 node_modules/

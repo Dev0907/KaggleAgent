@@ -166,7 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             startBtn.disabled = false;
             startBtn.classList.remove('running');
-            startBtn.innerHTML = '<span>Analyze Competition</span> <i class="fa-solid fa-magnifying-glass"></i>';
+            startBtn.innerHTML = '<span>Execute Universal Analysis</span> <i class="fa-solid fa-bolt"></i>';
         }
     });
 });
