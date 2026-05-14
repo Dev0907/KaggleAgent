@@ -7,5 +7,5 @@ const CONFIG = {
     // Localhost for development, Render URL for production
     API_BASE: (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
         ? 'http://localhost:8000'
-        : 'https://your-kaggle-agent-backend.onrender.com', // 👈 REPLACE THIS with your Render Web Service URL
+        : 'https://kaggleagent.onrender.com', // ✅ Render Backend URL
 };
