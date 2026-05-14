@@ -4,6 +4,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const agentStatus = document.getElementById('agent-status');
     const downloadReportBtn = document.getElementById('download-report-btn');
     
+    // API Configuration from config.js
+    const API_BASE = CONFIG.API_BASE;
+    
     // Chat Elements
     const chatWidget = document.getElementById('chat-widget');
     const chatHeader = document.getElementById('chat-header');
@@ -132,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
         appendMessage('user', text);
 
         try {
-            const response = await fetch('http://localhost:8000/api/chat', {
+            const response = await fetch(`${API_BASE}/api/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -177,7 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
         agentStatus.textContent = `Initializing Analysis for ${url}`;
 
         try {
-            const response = await fetch('http://localhost:8000/api/run', {
+            const response = await fetch(`${API_BASE}/api/run`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ url: url })
