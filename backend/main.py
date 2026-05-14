@@ -23,21 +23,19 @@ app.add_middleware(
 
 class RunRequest(BaseModel):
     url: str
-    model: str
 
 graph = create_kaggle_agent()
 
 async def event_generator(request: RunRequest):
     initial_state = {
         "competition": request.url,
-        "model": request.model,
         "messages": [HumanMessage(content=f"Analyze competition: {request.url}")],
         "slug": "",
-        "overview_summary": "",
-        "data_description": "",
-        "key_discussion_points": [],
-        "past_winners_strategies": [],
-        "final_strategy": ""
+        "explanation": "",
+        "data": "",
+        "approaches": "",
+        "winners": "",
+        "discussion": ""
     }
     
     yield json.dumps({"type": "log", "message": f"Starting task for URL: {request.url}"}) + "\n"
@@ -53,41 +51,39 @@ async def event_generator(request: RunRequest):
                 }) + "\n"
                 
                 # Send the actual data components to display in the UI cards
-                if "overview_summary" in state_update and state_update["overview_summary"]:
+                if "explanation" in state_update and state_update["explanation"]:
                     yield json.dumps({
                         "type": "content_update",
-                        "section": "overview",
-                        "content": state_update["overview_summary"]
+                        "section": "explanation",
+                        "content": state_update["explanation"]
                     }) + "\n"
                 
-                if "data_description" in state_update and state_update["data_description"]:
+                if "data" in state_update and state_update["data"]:
                     yield json.dumps({
                         "type": "content_update",
                         "section": "data",
-                        "content": state_update["data_description"]
+                        "content": state_update["data"]
                     }) + "\n"
                 
-                if "key_discussion_points" in state_update and state_update["key_discussion_points"]:
-                    points_html = "<ul>" + "".join([f"<li>{p}</li>" for p in state_update["key_discussion_points"]]) + "</ul>"
+                if "approaches" in state_update and state_update["approaches"]:
                     yield json.dumps({
                         "type": "content_update",
-                        "section": "discussions",
-                        "content": points_html
+                        "section": "approaches",
+                        "content": state_update["approaches"]
                     }) + "\n"
                 
-                if "past_winners_strategies" in state_update and state_update["past_winners_strategies"]:
-                    strategy_content = "<br><br>".join(state_update["past_winners_strategies"])
+                if "winners" in state_update and state_update["winners"]:
                     yield json.dumps({
                         "type": "content_update",
-                        "section": "strategies",
-                        "content": strategy_content
+                        "section": "winners",
+                        "content": state_update["winners"]
                     }) + "\n"
                 
-                if "messages" in state_update and state_update["messages"]:
-                    last_msg = state_update["messages"][-1].content
+                if "discussion" in state_update and state_update["discussion"]:
                     yield json.dumps({
-                        "type": "log",
-                        "message": f"[{node_name}] {last_msg}"
+                        "type": "content_update",
+                        "section": "discussion",
+                        "content": state_update["discussion"]
                     }) + "\n"
                 
                 await asyncio.sleep(0.5)

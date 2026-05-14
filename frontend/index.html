@@ -3,99 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kaggle AI Agent</title>
+    <title>Universal Kaggle Agent Analyzer | Elite AI Edition</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <style>
-        /* Specific additions for the new layout */
-        .content-cards {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
-            margin-top: 24px;
-        }
-        
-        .info-card {
-            background: rgba(30, 34, 53, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            display: none; /* hidden until data arrives */
-            animation: slideUp 0.4s ease forwards;
-        }
-
-        .info-card.visible {
-            display: block;
-        }
-
-        .info-card h3 {
-            color: var(--primary-color);
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 18px;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            padding-bottom: 8px;
-        }
-
-        .info-card p, .info-card ul {
-            color: #d1d5db;
-            font-size: 15px;
-            line-height: 1.6;
-        }
-
-        .info-card ul {
-            padding-left: 20px;
-            margin-top: 10px;
-        }
-
-        .info-card li {
-            margin-bottom: 8px;
-        }
-
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Simplified Grid */
-        .dashboard-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-
-        .top-row {
-            display: grid;
-            grid-template-columns: 1fr 2fr;
-            gap: 24px;
-        }
-    </style>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
     <div class="app-container">
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="logo-container">
-                <i class="fa-solid fa-brain logo-icon"></i>
-                <span class="logo-text">KaggleAgent</span>
+                <i class="fa-solid fa-bolt-lightning logo-icon"></i>
+                <span class="logo-text">KaggleAgent<span style="color:var(--accent-orange)">.AI</span></span>
             </div>
             <nav class="nav-menu">
-                <a href="#" class="nav-item active"><i class="fa-solid fa-robot"></i> Analysis</a>
-                <a href="#" class="nav-item"><i class="fa-solid fa-trophy"></i> History</a>
-                <a href="#" class="nav-item"><i class="fa-solid fa-gear"></i> Settings</a>
+                <a href="#" class="nav-item active"><i class="fa-solid fa-robot"></i> Universal Analyzer</a>
+                <a href="#" class="nav-item"><i class="fa-solid fa-trophy"></i> Elite History</a>
+                <a href="#" class="nav-item"><i class="fa-solid fa-gear"></i> Agent Config</a>
             </nav>
+            <div class="user-profile">
+                <div class="avatar">
+                    <i class="fa-solid fa-user-tie"></i>
+                </div>
+                <div class="user-info">
+                    <span class="user-name">Grandmaster Mode</span>
+                    <span class="user-role">Elite Edition</span>
+                </div>
+            </div>
         </aside>
 
         <!-- Main Content -->
         <main class="main-content">
             <header class="top-header">
-                <h2>Autonomous Kaggle Competition Analyst</h2>
+                <h2><i class="fa-solid fa-earth-americas" style="color:var(--primary-color)"></i> Universal Kaggle Agent Analyzer</h2>
                 <div class="header-actions">
-                    <span class="status-badge"><span class="status-dot"></span> Online</span>
+                    <span class="status-badge"><span class="status-dot"></span> Elite Intelligence Active</span>
                 </div>
             </header>
 
@@ -105,56 +48,50 @@
                     <div class="top-row">
                         <!-- Control Panel -->
                         <div class="panel control-panel">
-                            <h2><i class="fa-solid fa-link"></i> Target Competition</h2>
-                            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px;">Paste the Kaggle competition URL. The agents will automatically analyze the rules, data, and past winning strategies.</p>
+                            <h2><i class="fa-solid fa-wand-magic-sparkles"></i> Intelligence Hub</h2>
+                            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px;">Input any Kaggle URL. Our universal agent employs deep-search logic to dissect data, historical winning patterns, and forum gold-nuggets to architect your path to the leaderboard.</p>
                             
                             <div class="input-group">
                                 <label for="competition-url">Kaggle Competition URL</label>
-                                <input type="text" id="competition-url" placeholder="https://www.kaggle.com/competitions/cafa-6-protein-function-prediction">
+                                <input type="text" id="competition-url" placeholder="https://www.kaggle.com/competitions/..." autofocus>
                             </div>
                             
                             <div class="action-row">
-                                <div class="model-selector" style="flex:1; margin-right: 15px;">
-                                    <select id="model-select">
-                                        <option value="llama3-70b-8192">Llama 3 70B (Groq)</option>
-                                        <option value="mixtral-8x7b-32768">Mixtral 8x7B (Groq)</option>
-                                    </select>
-                                </div>
                                 <button id="start-btn" class="action-btn start-btn">
-                                    <span>Analyze</span>
-                                    <i class="fa-solid fa-magnifying-glass"></i>
+                                    <span>Execute Universal Analysis</span>
+                                    <i class="fa-solid fa-bolt"></i>
                                 </button>
                             </div>
                         </div>
 
                         <!-- Graph Visualization / Progress -->
                         <div class="panel graph-panel">
-                            <h2><i class="fa-solid fa-project-diagram"></i> Multi-Agent Execution Flow</h2>
+                            <h2><i class="fa-solid fa-project-diagram"></i> Execution Pipeline (Llama 3 70B + Tavily)</h2>
                             <div class="graph-container" id="graph-visualization">
                                 <div class="node-wrapper">
-                                    <div class="node pending" id="node-overview_parser">
+                                    <div class="node pending" id="node-explanation">
                                         <i class="fa-solid fa-book-open"></i>
                                         <span>Overview</span>
                                     </div>
                                     <div class="edge"></div>
-                                    <div class="node pending" id="node-data_analyzer">
+                                    <div class="node pending" id="node-data">
                                         <i class="fa-solid fa-database"></i>
-                                        <span>Data Insight</span>
+                                        <span>Data</span>
                                     </div>
                                     <div class="edge"></div>
-                                    <div class="node pending" id="node-discussion_miner">
-                                        <i class="fa-solid fa-comments"></i>
-                                        <span>Discussions</span>
-                                    </div>
-                                    <div class="edge"></div>
-                                    <div class="node pending" id="node-history_matcher">
+                                    <div class="node pending" id="node-approaches">
                                         <i class="fa-solid fa-clock-rotate-left"></i>
-                                        <span>Past Winners</span>
+                                        <span>Past Approaches</span>
                                     </div>
                                     <div class="edge"></div>
-                                    <div class="node pending" id="node-synthesizer">
-                                        <i class="fa-solid fa-wand-magic-sparkles"></i>
-                                        <span>Synthesis</span>
+                                    <div class="node pending" id="node-winners">
+                                        <i class="fa-solid fa-trophy"></i>
+                                        <span>Winner Insights</span>
+                                    </div>
+                                    <div class="edge"></div>
+                                    <div class="node pending" id="node-discussion">
+                                        <i class="fa-solid fa-comments"></i>
+                                        <span>Forum Intel</span>
                                     </div>
                                 </div>
                                 
@@ -167,28 +104,34 @@
 
                     <!-- Output Content Cards -->
                     <div class="content-cards">
-                        <!-- Overview Card -->
-                        <div class="info-card" id="card-overview">
-                            <h3><i class="fa-solid fa-info-circle"></i> Competition Overview in Simple Words</h3>
-                            <div class="card-content" id="content-overview">Loading...</div>
+                        <!-- Competition Explanation -->
+                        <div class="info-card" id="card-explanation">
+                            <h3><i class="fa-solid fa-circle-info"></i> What does this competition demand? (Simple Terms)</h3>
+                            <div class="card-content" id="content-explanation">Loading...</div>
                         </div>
 
-                        <!-- Data Card -->
+                        <!-- Data Explanation -->
                         <div class="info-card" id="card-data">
-                            <h3><i class="fa-solid fa-table-list"></i> What is the Data?</h3>
+                            <h3><i class="fa-solid fa-table-list"></i> What is the Data and what needs to be done?</h3>
                             <div class="card-content" id="content-data">Loading...</div>
                         </div>
 
-                        <!-- Discussions Card -->
-                        <div class="info-card" id="card-discussions">
-                            <h3><i class="fa-solid fa-lightbulb"></i> Actionable Insights from Discussions</h3>
-                            <div class="card-content" id="content-discussions">Loading...</div>
+                        <!-- Past Approaches -->
+                        <div class="info-card" id="card-approaches">
+                            <h3><i class="fa-solid fa-flask"></i> Approaches from Past Years</h3>
+                            <div class="card-content" id="content-approaches">Loading...</div>
                         </div>
 
-                        <!-- Strategies Card -->
-                        <div class="info-card" id="card-strategies">
-                            <h3><i class="fa-solid fa-ranking-star"></i> Top Last Year's Winner Strategies</h3>
-                            <div class="card-content" id="content-strategies">Loading...</div>
+                        <!-- Kaggle Winners Tips -->
+                        <div class="info-card" id="card-winners">
+                            <h3><i class="fa-solid fa-crown"></i> Secret Sauce: Top Solutions & Tips</h3>
+                            <div class="card-content" id="content-winners">Loading...</div>
+                        </div>
+
+                        <!-- Discussion Insights -->
+                        <div class="info-card" id="card-discussion">
+                            <h3><i class="fa-solid fa-comments"></i> Community Intel & Forum Buzz</h3>
+                            <div class="card-content" id="content-discussion">Loading...</div>
                         </div>
                     </div>
 

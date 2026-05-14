@@ -1,24 +1,23 @@
 document.addEventListener('DOMContentLoaded', () => {
     const startBtn = document.getElementById('start-btn');
     const compUrlInput = document.getElementById('competition-url');
-    const modelSelect = document.getElementById('model-select');
     const agentStatus = document.getElementById('agent-status');
     
     // Graph Nodes mapped to the 5-Agent Architecture
     const nodes = [
-        { id: 'node-overview_parser', name: 'Overview Parser', elem: document.getElementById('node-overview_parser') },
-        { id: 'node-data_analyzer', name: 'Data Analyzer', elem: document.getElementById('node-data_analyzer') },
-        { id: 'node-discussion_miner', name: 'Discussion Miner', elem: document.getElementById('node-discussion_miner') },
-        { id: 'node-history_matcher', name: 'History Matcher', elem: document.getElementById('node-history_matcher') },
-        { id: 'node-synthesizer', name: 'Synthesizer', elem: document.getElementById('node-synthesizer') }
+        { id: 'node-explanation', name: 'Overview', elem: document.getElementById('node-explanation') },
+        { id: 'node-data', name: 'Data', elem: document.getElementById('node-data') },
+        { id: 'node-approaches', name: 'Past Approaches', elem: document.getElementById('node-approaches') },
+        { id: 'node-winners', name: 'Winner Insights', elem: document.getElementById('node-winners') },
+        { id: 'node-discussion', name: 'Forum Intel', elem: document.getElementById('node-discussion') }
     ];
     
     const nodeMapping = {
-        'overview_parser': 0,
-        'data_analyzer': 1,
-        'discussion_miner': 2,
-        'history_matcher': 3,
-        'synthesizer': 4
+        'explanation': 0,
+        'data': 1,
+        'approaches': 2,
+        'winners': 3,
+        'discussion': 4
     };
     
     const edges = document.querySelectorAll('.edge');
@@ -35,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Hide all cards
         document.querySelectorAll('.info-card').forEach(card => {
             card.classList.remove('visible');
-            card.querySelector('.card-content').innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Loading data...';
+            card.querySelector('.card-content').innerHTML = '<i class="fa-solid fa-circle-notch fa-spin" style="color:var(--primary-color)"></i> Loading data...';
         });
     }
 
@@ -46,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (status === 'active') {
             node.elem.classList.add('active');
-            agentStatus.textContent = `Current Step: ${node.name}...`;
+            agentStatus.textContent = `Current Step: Analyzing ${node.name}...`;
             
             if (index > 0) {
                 edges[index - 1].classList.add('active');
@@ -62,9 +61,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Use marked.js for proper markdown formatting
+    function formatTextToHTML(text) {
+        if(!text) return "";
+        try {
+            return marked.parse(text);
+        } catch (e) {
+            console.error("Markdown parsing error", e);
+            return text;
+        }
+    }
+
     startBtn.addEventListener('click', async () => {
         const url = compUrlInput.value.trim();
-        const model = modelSelect.value;
+        // Model is hardcoded in backend now, no need to send it from frontend
 
         if (!url) {
             alert('Please provide a Kaggle competition URL.');
@@ -85,8 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    url: url,
-                    model: model
+                    url: url
                 })
             });
 
@@ -132,10 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             
                             if (cardElem && contentElem) {
                                 cardElem.classList.add('visible');
-                                // Using marked library if available, else plain HTML
-                                // Here we assume HTML formatting was handled by the backend or it's simple text.
-                                // We replace newlines with br tags for text.
-                                const htmlContent = data.content.includes('<') ? data.content : data.content.replace(/\\n/g, '<br>');
+                                const htmlContent = data.content.includes('<') ? data.content : formatTextToHTML(data.content);
                                 contentElem.innerHTML = htmlContent;
                             }
                         }
@@ -160,7 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             startBtn.disabled = false;
             startBtn.classList.remove('running');
-            startBtn.innerHTML = '<span>Analyze</span> <i class="fa-solid fa-magnifying-glass"></i>';
+            startBtn.innerHTML = '<span>Analyze Competition</span> <i class="fa-solid fa-magnifying-glass"></i>';
         }
     });
 });

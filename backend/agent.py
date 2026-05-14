@@ -9,30 +9,14 @@ from tavily import TavilyClient
 
 class AgentState(TypedDict):
     competition: str  # this is now the Kaggle URL
-    model: str
     messages: Sequence[BaseMessage]
     slug: str
     
-    # Overview Parser Outputs
-    overview_summary: str
-    task_type: str
-    metric: str
-    deadline: str
-    prize: str
-    
-    # Data Analyzer Outputs
-    data_description: str
-    data_formats: str
-    suggested_cv: str
-    
-    # Discussion Miner Outputs
-    key_discussion_points: List[str]
-    
-    # History Matcher Outputs
-    past_winners_strategies: List[str]
-    
-    # Synthesizer Outputs
-    final_strategy: str
+    explanation: str
+    data: str
+    approaches: str
+    winners: str
+    discussion: str
 
 def extract_slug(url: str) -> str:
     match = re.search(r'kaggle\.com/competitions/([^/]+)', url)
@@ -55,7 +39,10 @@ def search_web(query: str) -> str:
         time.sleep(2)
         return f"Mocked search results for: {query}"
 
-def call_llm(model_name: str, prompt: str) -> str:
+def call_llm(prompt: str) -> str:
+    # The user asked for a large open-source model available via Groq.
+    # llama-3.3-70b-versatile is currently the top tier on Groq.
+    model_name = "llama-3.3-70b-versatile"
     api_key = os.environ.get("GROQ_API_KEY")
     if api_key and api_key != "your_groq_api_key_here":
         try:
@@ -63,7 +50,13 @@ def call_llm(model_name: str, prompt: str) -> str:
             response = llm.invoke(prompt)
             return response.content
         except Exception as e:
-            return f"Mocked response (LLM error: {str(e)})"
+            # Fallback to a simpler model if 3.3 is offline
+            try:
+                llm = ChatGroq(model="llama3-70b-8192", groq_api_key=api_key)
+                response = llm.invoke(prompt)
+                return response.content
+            except Exception as e2:
+                return f"Mocked response (LLM error: {str(e2)})"
     else:
         time.sleep(2)
         return f"Mocked LLM generation based on prompt: {prompt[:30]}..."
@@ -71,85 +64,134 @@ def call_llm(model_name: str, prompt: str) -> str:
 def create_kaggle_agent():
     workflow = StateGraph(AgentState)
     
-    # Agent 1: Overview Parser
-    def overview_parser(state: AgentState):
+    # Node 1: Universal Explanation
+    def explanation_node(state: AgentState):
         url = state["competition"]
         slug = extract_slug(url)
         
-        # Search web for overview
-        search_results = search_web(f"Kaggle {slug} competition overview prize deadline rules")
+        # Deep search across multiple vectors
+        search_results = search_web(f"Kaggle competition {slug} overview task goal objective problem statement")
         
-        prompt = f"Based on these search results: {search_results}\n\nSummarize the {slug} Kaggle competition in simple words. Include the prize, deadline, evaluation metric, and task type (e.g. classification, NLP, etc.). Keep it concise and professional."
-        summary = call_llm(state.get("model", "llama3-70b-8192"), prompt)
+        prompt = f"""
+        Competition: {slug}
+        URL: {url}
+        Search Context: {search_results}
+        
+        Task: Provide an Elite Universal Analysis of this Kaggle competition.
+        1. Core Mission: What is the primary problem being solved?
+        2. Impact: Why does this competition exist? (Scientific, commercial, or social value).
+        3. Challenge Level: How difficult is this for a beginner vs. an expert?
+        
+        Explain in a high-octane, engaging, and clear manner. Use Grandmaster-level terminology but keep it accessible.
+        """
+        summary = call_llm(prompt)
         
         return {
             "slug": slug,
-            "overview_summary": summary,
-            "messages": [AIMessage(content=f"Analyzed competition overview for {slug}.")]
+            "explanation": summary
         }
 
-    # Agent 2: Data Analyzer
-    def data_analyzer(state: AgentState):
+    # Node 2: Universal Data Dissection
+    def data_node(state: AgentState):
         slug = state.get("slug", "competition")
-        search_results = search_web(f"Kaggle {slug} data description format size variables")
+        search_results = search_web(f"Kaggle {slug} dataset EDA features target leak validation strategy")
         
-        prompt = f"Based on these search results: {search_results}\n\nExplain the dataset for {slug} in simple words. What is the data format? What are the key variables? Suggest a high-level cross-validation strategy."
-        data_desc = call_llm(state.get("model", "llama3-70b-8192"), prompt)
+        prompt = f"""
+        Competition: {slug}
+        Search Context: {search_results}
+        
+        Task: Perform a deep-dive data architectural analysis.
+        - Structure: Breakdown training/testing sets, sample submission, and supplementary files.
+        - Target: Deep analysis of the target variable and its distribution.
+        - Features: Key numerical/categorical/text/image features to watch for.
+        - Evaluation: Critical analysis of the metric (e.g., LogLoss, MAE, F1) and what it implies for model bias.
+        Format with professional data-science headers.
+        """
+        data_desc = call_llm(prompt)
         
         return {
-            "data_description": data_desc,
-            "messages": [AIMessage(content=f"Analyzed data structure for {slug}.")]
+            "data": data_desc
         }
 
-    # Agent 3: Discussion Miner
-    def discussion_miner(state: AgentState):
+    # Node 3: Elite Approaches (The Top 3)
+    def approaches_node(state: AgentState):
         slug = state.get("slug", "competition")
-        search_results = search_web(f"Kaggle {slug} discussion insights data issues tips tricks")
+        search_results = search_web(f"Kaggle {slug} similar competitions winning solutions historical SOTA")
         
-        prompt = f"Based on these search results: {search_results}\n\nExtract 3-5 key discussion points, issues, or tips for the {slug} competition. Return as a bulleted list."
-        points = call_llm(state.get("model", "llama3-70b-8192"), prompt)
+        prompt = f"""
+        Competition: {slug}
+        Search Context: {search_results}
+        
+        Task: Architect the TOP 3 FINEST approaches for this competition.
+        Analyze similar historical Kaggle competitions (e.g., 'past versions of {slug}' or 'similar domain competitions').
+        
+        For each of the 3 approaches, provide:
+        - 🔥 Name: A catchy, professional name for the strategy.
+        - 🛠️ Architecture: The model stack (e.g., XGBoost + CNN + Transformer).
+        - 💡 Logic: Why this is a winning strategy for THIS data.
+        
+        🎯 CONCLUDE WITH: The "Most Feasible Grandmaster Approach" for an immediate start.
+        """
+        approaches = call_llm(prompt)
         
         return {
-            "key_discussion_points": [p.strip() for p in points.split('\n') if p.strip()],
-            "messages": [AIMessage(content=f"Mined top discussion signals for {slug}.")]
+            "approaches": approaches
         }
 
-    # Agent 4: History Matcher
-    def history_matcher(state: AgentState):
+    # Node 4: Grandmaster Secret Sauce
+    def winners_node(state: AgentState):
         slug = state.get("slug", "competition")
-        search_results = search_web(f"Kaggle {slug} past winner solutions github writeup similar competitions")
+        search_results = search_web(f"Kaggle {slug} winner solution writeup secret sauce tricks validation leak")
         
-        prompt = f"Based on these search results: {search_results}\n\nSummarize the top strategies and approaches used by winners of {slug} or similar past competitions (like previous iterations). Explain clearly what worked best."
-        winners_info = call_llm(state.get("model", "llama3-70b-8192"), prompt)
+        prompt = f"""
+        Competition: {slug}
+        Search Context: {search_results}
+        
+        Task: Extract the "Secret Sauce" from previous winners or top solutions in this domain.
+        Focus on the "1% differences" - the tiny tricks that push a model to 1st place:
+        - Validation strategies that prevent overfitting.
+        - Specific feature engineering (e.g., target encoding, time-series lags, image augmentations).
+        - Post-processing or ensemble blending techniques.
+        """
+        winners_info = call_llm(prompt)
         
         return {
-            "past_winners_strategies": [winners_info],
-            "messages": [AIMessage(content=f"Researched past winner strategies for {slug}.")]
+            "winners": winners_info
         }
 
-    # Agent 5: Synthesizer
-    def synthesizer(state: AgentState):
+    # Node 5: Universal Community Intel
+    def discussion_node(state: AgentState):
         slug = state.get("slug", "competition")
+        search_results = search_web(f"Kaggle {slug} forum discussion bugs tips notebooks gold")
         
-        final_strategy = f"Based on all previous analysis, here is the synthesized strategy for {slug}...\n\n"
-        final_strategy += "The recommended pipeline involves starting with a strong baseline, focusing heavily on feature engineering, and applying the cross-validation strategy mentioned earlier."
+        prompt = f"""
+        Competition: {slug}
+        Search Context: {search_results}
+        
+        Task: Sift through the Kaggle community buzz for {slug}.
+        - Critical Bugs: Are there data leaks, metric issues, or hidden files being discussed?
+        - Community Observations: What are the current 'hot takes' on the leaderboard?
+        - Golden Tips: Actionable advice shared by Kaggle Grandmasters in the forums.
+        Make this feel like a high-level intelligence briefing.
+        """
+        discussion_info = call_llm(prompt)
         
         return {
-            "final_strategy": final_strategy,
-            "messages": [AIMessage(content=f"Synthesized comprehensive final strategy.")]
+            "discussion": discussion_info
         }
 
-    workflow.add_node("overview_parser", overview_parser)
-    workflow.add_node("data_analyzer", data_analyzer)
-    workflow.add_node("discussion_miner", discussion_miner)
-    workflow.add_node("history_matcher", history_matcher)
-    workflow.add_node("synthesizer", synthesizer)
 
-    workflow.set_entry_point("overview_parser")
-    workflow.add_edge("overview_parser", "data_analyzer")
-    workflow.add_edge("data_analyzer", "discussion_miner")
-    workflow.add_edge("discussion_miner", "history_matcher")
-    workflow.add_edge("history_matcher", "synthesizer")
-    workflow.add_edge("synthesizer", END)
+    workflow.add_node("explanation", explanation_node)
+    workflow.add_node("data", data_node)
+    workflow.add_node("approaches", approaches_node)
+    workflow.add_node("winners", winners_node)
+    workflow.add_node("discussion", discussion_node)
+
+    workflow.set_entry_point("explanation")
+    workflow.add_edge("explanation", "data")
+    workflow.add_edge("data", "approaches")
+    workflow.add_edge("approaches", "winners")
+    workflow.add_edge("winners", "discussion")
+    workflow.add_edge("discussion", END)
 
     return workflow.compile()
