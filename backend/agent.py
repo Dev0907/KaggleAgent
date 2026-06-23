@@ -117,8 +117,20 @@ def search_web(query: str) -> str:
             
     return f"Search error (tried all keys): {str(last_error)}"
 
-def call_llm(prompt: str, system_message: str = "You are a Kaggle Grandmaster and Search Expert.", node_name: str = None) -> str:
+def call_llm(prompt: str, system_message: str = None, node_name: str = None) -> str:
     """Calls the Sarvam 105B model with tool-calling for end-to-end search and reasoning."""
+    if system_message is None:
+        system_message = (
+            "You are a Kaggle Grandmaster and Search Expert with elite-level competition experience.\n\n"
+            "CORE RULES:\n"
+            "- Always search the web first before answering — never rely on internal knowledge alone.\n"
+            "- Synthesize search findings into structured markdown with headings, bullet points, and bold key terms.\n"
+            "- When search returns no results, state 'No specific information found' and provide reasoning from first principles.\n"
+            "- Be specific: cite architectures, hyperparameters, metric names, and real team/user names where available.\n"
+            "- Output in clean markdown. Use `code` for snippets, **bold** for emphasis, and --- for section breaks.\n"
+            "- Keep explanations thorough but concise — aim for actionable intelligence, not fluff.\n"
+            "- Maintain a professional, mentor-like tone — direct, data-driven, and technically precise."
+        )
     token = None
     if node_name:
         token = current_node_context.set(node_name)
@@ -228,15 +240,18 @@ def create_kaggle_agent():
         slug = extract_slug(url)
         
         prompt = f"""
-        Act as a Search-First Kaggle Grandmaster. 
-        Your task is to provide a Strategic Overview for: {url} (Slug: {slug})
+        Competition: {url} (Slug: {slug})
         
-        INSTRUCTIONS:
-        1. Use your search tool to find the competition mission, historical context, and technical hurdles.
-        2. Synthesize the findings into:
-           - THE MISSION: Predictive task and value.
-           - CRITICAL SYSTEM PROBLEMS: Hurdles like data shifts, noise, or constraints.
-           - DOMAIN ARCHETYPE: Time-Series, CV, or Tabular?
+        Search the web for this competition's mission, background, and problem statement. Synthesize into:
+        
+        ## THE MISSION
+        What is the predictive task? What real-world value does solving it provide?
+        
+        ## CRITICAL SYSTEM PROBLEMS
+        What are the key hurdles — data shifts, label noise, metric constraints, hardware limits?
+        
+        ## DOMAIN ARCHETYPE
+        Is this Time-Series, CV, NLP, or Tabular? What makes it unique?
         """
         summary = call_llm(prompt, node_name="explanation")
         
@@ -250,16 +265,21 @@ def create_kaggle_agent():
         slug = state.get("slug", "competition")
         
         prompt = f"""
-        Act as an Elite Data Architect.
-        Perform a Deep Data Audit for Kaggle competition: {slug}
+        Competition Slug: {slug}
         
-        INSTRUCTIONS:
-        1. Search for the official data descriptions, target variables, and metrics.
-        2. Audit the:
-           - DATA STRUCTURE: File hierarchy.
-           - TARGET ANALYSIS: Regression vs Classification.
-           - THE EVALUATION: Deep-dive into the specific metric (Sharpe, Correlation, etc.)
-           - DATA CHALLENGES: Leaks, temporal constraints.
+        Search for the official data description, target variable, and evaluation metric. Produce a Deep Data Audit:
+        
+        ## DATA STRUCTURE
+        File hierarchy, column types, sizes, sampling strategy.
+        
+        ## TARGET ANALYSIS
+        Regression or Classification? Distribution, imbalance, leakage risks.
+        
+        ## THE EVALUATION METRIC
+        Deep-dive into the specific metric (e.g. Sharpe Ratio, Log Loss, AUC). How does it shape optimal modeling strategy?
+        
+        ## DATA CHALLENGES
+        Temporal constraints, leak paths, missing data patterns, and public/private split gotchas.
         """
         data_desc = call_llm(prompt, node_name="data")
         
@@ -272,13 +292,27 @@ def create_kaggle_agent():
         slug = state.get("slug", "competition")
         
         prompt = f"""
-        Act as a Grandmaster ML Architect.
-        Design 3 "Elite" Approaches for competition: {slug}
+        Competition Slug: {slug}
         
-        INSTRUCTIONS:
-        1. Search for high-voted code, top notebooks, and baseline strategies.
-        2. Detail 3 strategies: Name, Architecture (models), Rationale, and unique Feature Engineering ideas.
-        3. Provide the "Universal Most Feasible Approach" for a fast-start submission.
+        Search for high-voted notebooks, winning code, and baseline strategies. Design 3 Elite Approaches:
+        
+        ## APPROACH 1 — {{Creative Name}}
+        - Architecture: (specific models, ensemble strategy)
+        - Rationale: (why this fits the metric/data)
+        - Feature Engineering: (unique transformations)
+        
+        ## APPROACH 2 — {{Creative Name}}  
+        - Architecture:
+        - Rationale:
+        - Feature Engineering:
+        
+        ## APPROACH 3 — {{Creative Name}}
+        - Architecture:
+        - Rationale:
+        - Feature Engineering:
+        
+        ## 🏆 MOST FEASIBLE FAST-START
+        Which approach can be implemented fastest for a solid submission? Provide the minimal viable pipeline.
         """
         approaches = call_llm(prompt, node_name="approaches")
         
@@ -291,12 +325,16 @@ def create_kaggle_agent():
         slug = state.get("slug", "competition")
         
         prompt = f"""
-        Act as a Competitive Intelligence Expert.
-        Deep-Dive into the TOP 5 WINNING SOLUTIONS for: {slug}
+        Competition Slug: {slug}
         
-        INSTRUCTIONS:
-        1. Search for technical writeups, gold medal solutions, and winning team blogs.
-        2. Detail: Rank/User, Core Idea, Technical Stack, CV vs LB stability, and the "Secret Sauce".
+        Search for technical writeups, gold medal solution threads, and winning team blogs. Profile the TOP 5 solutions:
+        
+        For each:
+        - **Rank / Team**: 
+        - **Core Idea**: (what made it work)
+        - **Technical Stack**: (models, frameworks, hardware)
+        - **CV vs LB**: (how stable was their validation?)
+        - **Secret Sauce**: (the one thing that gave them the edge)
         """
         winners_info = call_llm(prompt, node_name="winners")
         
@@ -309,12 +347,21 @@ def create_kaggle_agent():
         slug = state.get("slug", "competition")
         
         prompt = f"""
-        Act as a Community Intel Specialist.
-        Brief us on the "Hot Intelligence" for: {slug}
+        Competition Slug: {slug}
         
-        INSTRUCTIONS:
-        1. Search Kaggle forums for upvoted discussions, leak alerts, and Golden Kernels.
-        2. Identify: Top-voted buzz, elite forum strategies, alerts/leaks, and community-endorsed workflows.
+        Search Kaggle forums, discussion threads, and community posts. Report the pulse of the crowd:
+        
+        ## 🔥 HOTTEST DISCUSSIONS
+        Top-voted threads and what they reveal.
+        
+        ## ⚠️ ALERTS & LEAKS
+        Data leaks, evaluation loopholes, or competition updates.
+        
+        ## 🏅 GOLDEN KERNELS
+        Community-endorsed notebooks/approaches that everyone references.
+        
+        ## 💡 ELITE STRATEGIES
+        Strategies shared by top competitors in forum posts.
         """
         discussion_info = call_llm(prompt, node_name="discussion")
         
@@ -328,12 +375,20 @@ def create_kaggle_agent():
         slug = state.get("slug", "competition")
         
         prompt = f"""
-        Act as an External Resource Scout.
-        Find ELITE external resources for: {slug}
+        Competition Slug: {slug}
         
-        INSTRUCTIONS:
-        1. Search GitHub for winning code, Medium/blog writeups, and relevant Research Papers.
-        2. Provide a linked list with 1-sentence summaries for each.
+        Search GitHub, Medium, blogs, and arXiv for external resources. Compile an ELITE resource list:
+        
+        ## 📂 GITHUB REPOS
+        Winning solution codebases with star counts and key features.
+        
+        ## 📝 BLOG WRITEUPS
+        Technical deep-dives from winners or participants.
+        
+        ## 📄 RESEARCH PAPERS
+        Papers that inspired winning approaches or are directly applicable.
+        
+        For each entry provide: title, URL, and a 1-sentence summary of why it matters.
         """
         links_info = call_llm(prompt, node_name="code_hunter")
         

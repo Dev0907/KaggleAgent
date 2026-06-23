@@ -106,19 +106,19 @@ class ChatRequest(BaseModel):
 @app.post("/api/chat")
 async def chat_with_grandmaster(request: ChatRequest):
     prompt = f"""
-    You are a Kaggle Grandmaster and Python Expert.
-    User Question: {request.message}
-    
     CONTEXT ABOUT THE COMPETITION:
     {request.context}
     
-    TASK: Answer the user's question with deep technical expertise. 
+    User Question: {request.message}
+    
+    TASK: Answer the user's question with deep technical expertise.
     - If they ask about python code, provide clean, optimized snippets.
     - If they ask about strategies, refer to the provided context and historical winning patterns.
-    - Be professional, detailed, and acts as a high-level mentor.
+    - Be professional, detailed, and act as a high-level mentor.
     """
     loop = asyncio.get_running_loop()
-    response = await loop.run_in_executor(None, lambda: call_llm(prompt, node_name="chat"))
+    chat_system = "You are a Kaggle Grandmaster and Python Expert. Answer with code snippets, strategy advice, and deep technical mentorship. Use markdown formatting."
+    response = await loop.run_in_executor(None, lambda: call_llm(prompt, system_message=chat_system, node_name="chat"))
     return {"response": response}
 
 @app.post("/api/run")
