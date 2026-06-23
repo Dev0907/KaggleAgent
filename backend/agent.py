@@ -143,8 +143,8 @@ def call_llm(prompt: str, system_message: str = "You are a Kaggle Grandmaster an
             if node_name in node_to_index:
                 start_idx = node_to_index[node_name] % len(groq_keys)
                 
-        # Models to try sequentially on failure (allows fallback from custom to standard Groq models)
-        models_to_try = ["openai/gpt-oss-120b", "llama-3.1-70b-versatile", "llama-3.1-8b-instant", "llama3-70b-8192", "mixtral-8x7b-32768"]
+        # Only use the GPT-OSS model as requested
+        models_to_try = ["openai/gpt-oss-120b"]
         
         if not groq_keys or all(k == "your_groq_api_key_here" for k in groq_keys):
             return f"Mocked LLM generation for: {prompt[:50]}..."
@@ -192,7 +192,7 @@ def call_llm(prompt: str, system_message: str = "You are a Kaggle Grandmaster an
                     # Small backoff before retrying
                     time.sleep(0.5)
                     
-        return f"End-to-End Model Error (Tried all fallback models and keys): {str(last_error)}"
+        return f"End-to-End Model Error (Tried all keys for {models_to_try[0]}): {str(last_error)}"
     finally:
         if token:
             current_node_context.reset(token)

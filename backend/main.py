@@ -5,6 +5,7 @@ import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import uvicorn
@@ -28,7 +29,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
+@app.get("/api/health")
 async def health_check():
     return {"status": "online", "message": "Kaggle Agent API is running"}
 
@@ -117,6 +118,10 @@ async def chat_with_grandmaster(request: ChatRequest):
 @app.post("/api/run")
 async def run_agent(request: RunRequest):
     return StreamingResponse(event_generator(request), media_type="text/event-stream")
+
+frontend_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
+if os.path.isdir(frontend_dir):
+    app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
