@@ -1,14 +1,14 @@
 import os
 import time
 import re
+import json
 import threading
 from typing import Dict, TypedDict, Any, List, Sequence
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
 from langgraph.graph import StateGraph, END
-from langchain_groq import ChatGroq
 from tavily import TavilyClient
 from langchain_core.tools import tool
-from langchain_core.messages import ToolMessage
+from sarvamai import SarvamAI
 
 import contextvars
 
@@ -16,8 +16,8 @@ import contextvars
 current_node_context = contextvars.ContextVar("current_node", default="default")
 
 # Parse multiple API keys from environment
-def get_groq_api_keys():
-    keys_str = os.environ.get("GROQ_API_KEY", "")
+def get_sarvam_api_keys():
+    keys_str = os.environ.get("SARVAM_API_KEY", "")
     if keys_str:
         return [k.strip() for k in keys_str.split(",") if k.strip()]
     return []
@@ -28,21 +28,21 @@ def get_tavily_api_keys():
         return [k.strip() for k in keys_str.split(",") if k.strip()]
     return []
 
-GROQ_API_KEYS = get_groq_api_keys()
+SARVAM_API_KEYS = get_sarvam_api_keys()
 TAVILY_API_KEYS = get_tavily_api_keys()
 
-_groq_key_index = 0
+_sarvam_key_index = 0
 _tavily_key_index = 0
 _key_lock = threading.Lock()
 _tavily_lock = threading.Lock()
 
-def get_next_groq_key():
-    global _groq_key_index
-    if not GROQ_API_KEYS:
+def get_next_sarvam_key():
+    global _sarvam_key_index
+    if not SARVAM_API_KEYS:
         return None
     with _key_lock:
-        key = GROQ_API_KEYS[_groq_key_index % len(GROQ_API_KEYS)]
-        _groq_key_index += 1
+        key = SARVAM_API_KEYS[_sarvam_key_index % len(SARVAM_API_KEYS)]
+        _sarvam_key_index += 1
         return key
 
 def get_next_tavily_key():
@@ -118,16 +118,14 @@ def search_web(query: str) -> str:
     return f"Search error (tried all keys): {str(last_error)}"
 
 def call_llm(prompt: str, system_message: str = "You are a Kaggle Grandmaster and Search Expert.", node_name: str = None) -> str:
-    """Calls the GPT-OSS 120B model (with Llama-3 fallback) with tool-calling for end-to-end search and reasoning."""
-    # Set the context for the current node name
+    """Calls the Sarvam 105B model with tool-calling for end-to-end search and reasoning."""
     token = None
     if node_name:
         token = current_node_context.set(node_name)
         
     try:
-        groq_keys = get_groq_api_keys()
+        sarvam_keys = get_sarvam_api_keys()
         
-        # Determine starting index for the key
         node_to_index = {
             "explanation": 0,
             "data": 1,
@@ -139,60 +137,84 @@ def call_llm(prompt: str, system_message: str = "You are a Kaggle Grandmaster an
         }
         
         start_idx = 0
-        if groq_keys:
+        if sarvam_keys:
             if node_name in node_to_index:
-                start_idx = node_to_index[node_name] % len(groq_keys)
+                start_idx = node_to_index[node_name] % len(sarvam_keys)
                 
-        # Only use the GPT-OSS model as requested
-        models_to_try = ["openai/gpt-oss-120b"]
+        model = "sarvam-105b"
         
-        if not groq_keys or all(k == "your_groq_api_key_here" for k in groq_keys):
+        if not sarvam_keys or all(k == "your_sarvam_api_key_here" for k in sarvam_keys):
             return f"Mocked LLM generation for: {prompt[:50]}..."
             
         last_error = None
-        for model in models_to_try:
-            # For each model, try all available API keys
-            for attempt in range(len(groq_keys)):
-                key_idx = (start_idx + attempt) % len(groq_keys)
-                api_key = groq_keys[key_idx]
+        for attempt in range(len(sarvam_keys)):
+            key_idx = (start_idx + attempt) % len(sarvam_keys)
+            api_key = sarvam_keys[key_idx]
+            
+            try:
+                client = SarvamAI(api_subscription_key=api_key)
                 
-                try:
-                    llm = ChatGroq(model=model, groq_api_key=api_key)
-                    tools = [search_web]
-                    llm_with_tools = llm.bind_tools(tools)
+                tools = [{
+                    "type": "function",
+                    "function": {
+                        "name": "search_web",
+                        "description": "Searches the web for the given query using Tavily and returns the results as a string.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "query": {"type": "string", "description": "The search query"}
+                            },
+                            "required": ["query"]
+                        }
+                    }
+                }]
+                
+                messages = [
+                    {"role": "system", "content": system_message},
+                    {"role": "user", "content": prompt}
+                ]
+                
+                for _ in range(4):
+                    response = client.chat.completions(
+                        model=model,
+                        messages=messages,
+                        tools=tools,
+                        tool_choice="auto",
+                        temperature=0.3,
+                        max_tokens=4000
+                    )
                     
-                    messages = [
-                        ("system", system_message),
-                        ("human", prompt)
-                    ]
+                    msg = response.choices[0].message
+                    messages.append({"role": "assistant", "content": msg.content or "", "tool_calls": msg.tool_calls})
                     
-                    # Initial call
-                    response = llm_with_tools.invoke(messages)
-                    messages.append(response)
+                    if not msg.tool_calls:
+                        return msg.content or ""
                     
-                    # Loop to handle tool calls (Search -> Reason -> Search)
-                    # Limiting to 3 tool calls to prevent infinite loops
-                    for _ in range(3):
-                        if not response.tool_calls:
-                            break
-                            
-                        for tool_call in response.tool_calls:
-                            if tool_call["name"] == "search_web":
-                                tool_output = search_web.invoke(tool_call["args"])
-                                messages.append(ToolMessage(content=tool_output, tool_call_id=tool_call["id"]))
-                        
-                        # Get the final synthesis or next tool call
-                        response = llm_with_tools.invoke(messages)
-                        messages.append(response)
-                        
-                    return response.content
-                except Exception as e:
-                    last_error = e
-                    print(f"Error calling model {model} with key index {key_idx}: {str(e)}")
-                    # Small backoff before retrying
-                    time.sleep(0.5)
-                    
-        return f"End-to-End Model Error (Tried all keys for {models_to_try[0]}): {str(last_error)}"
+                    for tool_call in msg.tool_calls:
+                        if tool_call.function.name == "search_web":
+                            args = json.loads(tool_call.function.arguments)
+                            tool_output = search_web.invoke(args)
+                            messages.append({
+                                "role": "tool",
+                                "content": tool_output,
+                                "tool_call_id": tool_call.id
+                            })
+                
+                # Max iterations reached with tools — get final synthesis without tool calling
+                response = client.chat.completions(
+                    model=model,
+                    messages=messages,
+                    temperature=0.3,
+                    max_tokens=4000
+                )
+                return response.choices[0].message.content or ""
+                
+            except Exception as e:
+                last_error = e
+                print(f"Error calling Sarvam model {model} with key index {key_idx}: {str(e)}")
+                time.sleep(0.5)
+                
+        return f"End-to-End Model Error (Tried all keys for {model}): {str(last_error)}"
     finally:
         if token:
             current_node_context.reset(token)
