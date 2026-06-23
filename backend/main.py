@@ -53,16 +53,18 @@ async def event_generator(request: RunRequest):
     yield json.dumps({"type": "log", "message": f"Starting task for URL: {request.url}"}) + "\n"
     
     try:
-        # Since graph.stream runs synchronous operations, we run it in a separate thread
-        # to avoid blocking the event loop
         loop = asyncio.get_running_loop()
         
-        def stream_graph():
-            return list(graph.stream(initial_state))
-            
-        outputs = await loop.run_in_executor(None, stream_graph)
+        # Create an iterator from the synchronous graph stream
+        stream_iterator = graph.stream(initial_state)
         
-        for output in outputs:
+        while True:
+            try:
+                # Retrieve the next output in a non-blocking thread executor
+                output = await loop.run_in_executor(None, next, stream_iterator)
+            except StopIteration:
+                break
+                
             for node_name, state_update in output.items():
                 # Yield state update for the frontend node graph
                 yield json.dumps({
@@ -80,7 +82,7 @@ async def event_generator(request: RunRequest):
                             "content": state_update[section]
                         }) + "\n"
                 
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(0.1)
                 
         yield json.dumps({
             "type": "result",
