@@ -23,7 +23,13 @@ app = FastAPI(title="Kaggle Agent API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:8000",
+        "http://localhost:3000",
+        "http://127.0.0.1:8000",
+        "https://kaggle-agent.vercel.app",
+        "https://kaggleagent.onrender.com",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
