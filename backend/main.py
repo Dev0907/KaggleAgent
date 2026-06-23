@@ -1,3 +1,5 @@
+import os
+import sys
 import json
 import asyncio
 from fastapi import FastAPI
@@ -5,11 +7,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
+import uvicorn
 
 try:
-    from .agent import create_kaggle_agent
+    from .agent import create_kaggle_agent, call_llm
 except ImportError:
-    from agent import create_kaggle_agent
+    from agent import create_kaggle_agent, call_llm
 
 from langchain_core.messages import HumanMessage
 
@@ -19,7 +22,7 @@ app = FastAPI(title="Kaggle Agent API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, you can replace this with your Vercel URL
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -50,9 +53,17 @@ async def event_generator(request: RunRequest):
     yield json.dumps({"type": "log", "message": f"Starting task for URL: {request.url}"}) + "\n"
     
     try:
-        for output in graph.stream(initial_state):
+        # Since graph.stream runs synchronous operations, we run it in a separate thread
+        # to avoid blocking the event loop
+        loop = asyncio.get_running_loop()
+        
+        def stream_graph():
+            return list(graph.stream(initial_state))
+            
+        outputs = await loop.run_in_executor(None, stream_graph)
+        
+        for output in outputs:
             for node_name, state_update in output.items():
-                
                 # Yield state update for the frontend node graph
                 yield json.dumps({
                     "type": "state_update",
@@ -85,10 +96,6 @@ class ChatRequest(BaseModel):
 
 @app.post("/api/chat")
 async def chat_with_grandmaster(request: ChatRequest):
-    try:
-        from .agent import call_llm
-    except ImportError:
-        from agent import call_llm
     prompt = f"""
     You are a Kaggle Grandmaster and Python Expert.
     User Question: {request.message}
@@ -101,7 +108,8 @@ async def chat_with_grandmaster(request: ChatRequest):
     - If they ask about strategies, refer to the provided context and historical winning patterns.
     - Be professional, detailed, and acts as a high-level mentor.
     """
-    response = call_llm(prompt)
+    loop = asyncio.get_running_loop()
+    response = await loop.run_in_executor(None, lambda: call_llm(prompt, node_name="chat"))
     return {"response": response}
 
 @app.post("/api/run")
@@ -109,7 +117,5 @@ async def run_agent(request: RunRequest):
     return StreamingResponse(event_generator(request), media_type="text/event-stream")
 
 if __name__ == "__main__":
-    import uvicorn
-    import os
     port = int(os.environ.get("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
