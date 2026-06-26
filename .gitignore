@@ -22,10 +22,13 @@ __pycache__/
 # Backend
 backend/venv/
 backend/kegel/
+backend/kaggle/
 kegel/
+kaggle/
 
 # Ignore node_modules if added later
 node_modules/
 
 # Logs
 *.log
+
