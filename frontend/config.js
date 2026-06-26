@@ -5,9 +5,9 @@
 const CONFIG = {
     // API URL for the backend service (Render)
     // Localhost for development, Render URL for production
-    API_BASE: (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    API_BASE: (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
         ? 'http://localhost:8000'
-        : 'https://kaggleagent.onrender.com', // ✅ Render Backend URL
+        : window.location.origin,
     // Frontend deployment URL
-    FRONTEND_URL: 'https://kaggle-agent.vercel.app',
+    FRONTEND_URL: window.location.origin,
 };
