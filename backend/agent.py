@@ -75,36 +75,22 @@ def extract_slug(url: str) -> str:
 @tool
 def search_web(query: str) -> str:
     """Searches the web for the given query using Tavily and returns the results as a string."""
-    node_name = current_node_context.get()
     tavily_keys = get_tavily_api_keys()
     
-    # Try all Tavily keys on failure, starting with the designated one for this node
-    keys_to_try = []
-    if tavily_keys:
-        node_to_index = {
-            "explanation": 0,
-            "data": 1,
-            "approaches": 2,
-            "winners": 3,
-            "discussion": 4,
-            "code_hunter": 5,
-            "chat": 0
-        }
-        if node_name in node_to_index:
-            start_idx = node_to_index[node_name] % len(tavily_keys)
-            keys_to_try = [tavily_keys[(start_idx + i) % len(tavily_keys)] for i in range(len(tavily_keys))]
-        else:
-            keys_to_try = tavily_keys
-    else:
+    if not tavily_keys or all(k == "your_tavily_api_key_here" for k in tavily_keys):
         env_key = os.environ.get("TAVILY_API_KEY")
         if env_key:
-            keys_to_try = [env_key]
+            tavily_keys = [env_key]
             
-    if not keys_to_try or all(k == "your_tavily_api_key_here" for k in keys_to_try):
+    if not tavily_keys or all(k == "your_tavily_api_key_here" for k in tavily_keys):
         return f"Mocked search results for: {query}"
         
     last_error = None
-    for api_key in keys_to_try:
+    # Try up to the number of keys we have available
+    for _ in range(max(1, len(tavily_keys))):
+        api_key = get_next_tavily_key()
+        if not api_key:
+            break
         try:
             client = TavilyClient(api_key=api_key)
             response = client.search(query=query, search_depth="advanced")
@@ -115,21 +101,22 @@ def search_web(query: str) -> str:
             last_error = e
             print(f"Tavily search error with key {api_key[:10]}...: {str(e)}")
             
-    return f"Search error (tried all keys): {str(last_error)}"
+    return f"Search error (tried available keys): {str(last_error)}"
 
 def call_llm(prompt: str, system_message: str = None, node_name: str = None) -> str:
     """Calls the Sarvam 105B model with tool-calling for end-to-end search and reasoning."""
     if system_message is None:
         system_message = (
-            "You are a Kaggle Grandmaster and Search Expert with elite-level competition experience.\n\n"
-            "CORE RULES:\n"
-            "- Always search the web first before answering — never rely on internal knowledge alone.\n"
-            "- Synthesize search findings into structured markdown with headings, bullet points, and bold key terms.\n"
-            "- When search returns no results, state 'No specific information found' and provide reasoning from first principles.\n"
-            "- Be specific: cite architectures, hyperparameters, metric names, and real team/user names where available.\n"
-            "- Output in clean markdown. Use `code` for snippets, **bold** for emphasis, and --- for section breaks.\n"
-            "- Keep explanations thorough but concise — aim for actionable intelligence, not fluff.\n"
-            "- Maintain a professional, mentor-like tone — direct, data-driven, and technically precise."
+            "You are an elite Kaggle Grandmaster and Principal AI Research Agent. "
+            "You possess deep expertise across all AI domains: tabular/structured data, computer vision, NLP, time series, and reinforcement learning.\n\n"
+            "CORE INSTRUCTIONS:\n"
+            "- ALWAYS run multiple distinct web search queries (at least 2-3 sequentially) to gather exhaustive, precise context. "
+            "First query the specific competition target; then query notebooks, discussions, and external Kaggle solutions.\n"
+            "- For tabular data (like Titanic): Focus on feature engineering, missing value imputation, random forests, XGBoost/LightGBM, and robust cross-validation.\n"
+            "- For deep learning (CV/NLP): Cite exact architectures, loss functions, custom metrics, and optimization tricks.\n"
+            "- Quote real Kaggle usernames, team strategies, and code repository links where relevant.\n"
+            "- Synthesize findings into highly structured, comprehensive, and professional markdown summaries.\n"
+            "- Maintain an elite, mentor-level tone — precise, rigorous, and direct."
         )
     token = None
     if node_name:
@@ -137,22 +124,6 @@ def call_llm(prompt: str, system_message: str = None, node_name: str = None) -> 
         
     try:
         sarvam_keys = get_sarvam_api_keys()
-        
-        node_to_index = {
-            "explanation": 0,
-            "data": 1,
-            "approaches": 2,
-            "winners": 3,
-            "discussion": 4,
-            "code_hunter": 5,
-            "chat": 0
-        }
-        
-        start_idx = 0
-        if sarvam_keys:
-            if node_name in node_to_index:
-                start_idx = node_to_index[node_name] % len(sarvam_keys)
-                
         model = "sarvam-105b"
         
         if not sarvam_keys or all(k == "your_sarvam_api_key_here" for k in sarvam_keys):
@@ -160,8 +131,9 @@ def call_llm(prompt: str, system_message: str = None, node_name: str = None) -> 
             
         last_error = None
         for attempt in range(len(sarvam_keys)):
-            key_idx = (start_idx + attempt) % len(sarvam_keys)
-            api_key = sarvam_keys[key_idx]
+            api_key = get_next_sarvam_key()
+            if not api_key:
+                break
             
             try:
                 client = SarvamAI(api_subscription_key=api_key)
@@ -212,10 +184,11 @@ def call_llm(prompt: str, system_message: str = None, node_name: str = None) -> 
                                 "tool_call_id": tool_call.id
                             })
                 
-                # Max iterations reached with tools — get final synthesis without tool calling
+                # Max iterations reached with tools — get final synthesis with tools provided (required by API for history)
                 response = client.chat.completions(
                     model=model,
                     messages=messages,
+                    tools=tools,
                     temperature=0.3,
                     max_tokens=4000
                 )
@@ -242,16 +215,24 @@ def create_kaggle_agent():
         prompt = f"""
         Competition: {url} (Slug: {slug})
         
-        Search the web for this competition's mission, background, and problem statement. Synthesize into:
+        Search the web for this specific Kaggle competition's detailed mission, background, dataset, and problem statement. Synthesize into:
         
-        ## THE MISSION
-        What is the predictive task? What real-world value does solving it provide?
+        # 🌌 DEEP COMPETITION ANALYSIS: {slug}
         
-        ## CRITICAL SYSTEM PROBLEMS
-        What are the key hurdles — data shifts, label noise, metric constraints, hardware limits?
+        ## 🎯 THE MISSION
+        - Identify the precise predictive task (e.g., binary classification, object detection, time series forecasting).
+        - Detail the input data modalities (e.g., Tabular CSVs, Images, Audio, Text) and the output targets.
+        - Discuss the real-world scientific, industrial, or educational value.
         
-        ## DOMAIN ARCHETYPE
-        Is this Time-Series, CV, NLP, or Tabular? What makes it unique?
+        ## 🧮 THE EVALUATION FRAMEWORK
+        - Define the primary evaluation metric used for the leaderboard.
+        - Detail how this metric shapes the optimization path and any known sensitivities (e.g., handling class imbalance, thresholding).
+        
+        ## ⚠️ CRITICAL CHALLENGES
+        - Detail the specific hurdles: missing data, label noise, domain shifts, data leakage risks, or compute limits.
+        
+        ## 🏷️ DOMAIN ARCHETYPE
+        - Categorize the competition (e.g., Tabular Beginner, Advanced NLP, Object Detection). Discuss what makes this task unique compared to standard datasets.
         """
         summary = call_llm(prompt, node_name="explanation")
         
@@ -267,19 +248,24 @@ def create_kaggle_agent():
         prompt = f"""
         Competition Slug: {slug}
         
-        Search for the official data description, target variable, and evaluation metric. Produce a Deep Data Audit:
+        Search for the official data description, files, target variables, and evaluation metric. Produce a Deep Data Audit:
         
-        ## DATA STRUCTURE
-        File hierarchy, column types, sizes, sampling strategy.
+        # 📊 UNIVERSAL DATA DISSECTION & AUDIT: {slug}
         
-        ## TARGET ANALYSIS
-        Regression or Classification? Distribution, imbalance, leakage risks.
+        ## 📂 DATA STRUCTURE & SPECIFICATIONS
+        - Outline the file hierarchy (directories, CSVs, metadata, image formats).
+        - For tabular: Detail key column types, skewed distributions, and categorical variables.
+        - For unstructured: Detail image/audio sizes, lengths, and formats.
         
-        ## THE EVALUATION METRIC
-        Deep-dive into the specific metric (e.g. Sharpe Ratio, Log Loss, AUC). How does it shape optimal modeling strategy?
+        ## 🎯 TARGET ANALYSIS & BIASES
+        - Analyze the target variables.
+        - Detail target distributions, imbalances (e.g., survival rates for Titanic, rare disease classes), and potential data leakage risks.
         
-        ## DATA CHALLENGES
-        Temporal constraints, leak paths, missing data patterns, and public/private split gotchas.
+        ## 🛠️ FEATURE ENGINEERING PRIORITIES
+        - Describe essential feature engineering steps specific to this data (e.g., extracting titles from names in Titanic, creating family size, or standardizing image contrasts).
+        
+        ## 🛡️ ROBUST CROSS-VALIDATION STRATEGY
+        - Design a robust validation split (e.g., Stratified K-Fold, GroupKFold by patient/origin, Time-Series Split) to mirror the public/private leaderboard split and prevent shakeups.
         """
         data_desc = call_llm(prompt, node_name="data")
         
@@ -294,25 +280,27 @@ def create_kaggle_agent():
         prompt = f"""
         Competition Slug: {slug}
         
-        Search for high-voted notebooks, winning code, and baseline strategies. Design 3 Elite Approaches:
+        Search for high-voted notebooks, baseline strategies, and successful models specifically for this competition. Design 3 Elite Architectures or Pipelines:
         
-        ## APPROACH 1 — {{Creative Name}}
-        - Architecture: (specific models, ensemble strategy)
-        - Rationale: (why this fits the metric/data)
-        - Feature Engineering: (unique transformations)
+        # 🔬 ELITE APPROACHES & PIPELINES: {slug}
         
-        ## APPROACH 2 — {{Creative Name}}  
-        - Architecture:
-        - Rationale:
-        - Feature Engineering:
+        ## 🧠 APPROACH 1 — Strong Baseline / Traditional ML
+        - **Core Architecture**: Simple but highly effective models (e.g., Random Forest, XGBoost, or Logistic Regression for tabular; ResNet34 for vision).
+        - **Key Feature Interactions**: The most critical features or embeddings fed into the model.
+        - **Hyperparameters**: Best initial starting points for learning rate, depth, or regularization.
         
-        ## APPROACH 3 — {{Creative Name}}
-        - Architecture:
-        - Rationale:
-        - Feature Engineering:
+        ## 🧠 APPROACH 2 — Advanced / State-of-the-Art Model
+        - **Core Architecture**: The typical SOTA used for this specific domain (e.g., LightGBM/CatBoost ensembles, Transformers/BERT, or YOLO/UNet).
+        - **Loss Formulation & Tuning**: Custom loss functions or optimization targets.
+        - **Hyperparameters & Tricks**: Advanced tricks like pseudo-labeling, test-time augmentation (TTA), or specific learning rate schedules.
         
-        ## 🏆 MOST FEASIBLE FAST-START
-        Which approach can be implemented fastest for a solid submission? Provide the minimal viable pipeline.
+        ## 🧠 APPROACH 3 — The Ensemble / Winning Blend
+        - **Core Architecture**: How top teams typically blend models for this archetype.
+        - **Blending Strategy**: Weighted averaging, stacking with a meta-model, or voting classifiers.
+        - **Diversity**: How to ensure the blended models make uncorrelated errors.
+        
+        ## 🏆 PRODUCTION-READY PIPELINE TEMPLATE
+        - Provide step-by-step pseudo-code or Python template for the training loop and feature pipeline.
         """
         approaches = call_llm(prompt, node_name="approaches")
         

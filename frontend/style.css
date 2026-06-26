@@ -592,16 +592,40 @@ body {
 }
 
 /* Markdown Styling */
-.card-content h1, .card-content h2, .card-content h3 {
+.card-content h1 {
+    font-size: 24px;
     margin-top: 24px;
+    margin-bottom: 16px;
+    color: var(--primary-color);
+    border-bottom: 2px solid var(--panel-border);
+    padding-bottom: 8px;
+}
+
+.card-content h2 {
+    font-size: 20px;
+    margin-top: 20px;
     margin-bottom: 12px;
     color: #111827;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 4px;
+}
+
+.card-content h3 {
+    font-size: 18px;
+    margin-top: 20px;
+    margin-bottom: 12px;
+    color: #1f2937;
 }
 
 .card-content h4 {
+    font-size: 16px;
     margin-top: 16px;
     margin-bottom: 8px;
     color: #374151;
+    background: #f9fafb;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border-left: 4px solid var(--primary-color);
 }
 
 .card-content ul, .card-content ol {
@@ -611,26 +635,67 @@ body {
 
 .card-content li {
     margin-bottom: 8px;
+    padding-left: 4px;
 }
 
 .card-content p {
     margin-bottom: 16px;
+    line-height: 1.7;
+}
+
+.card-content a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.card-content a:hover {
+    text-decoration: underline;
+}
+
+.card-content strong, .card-content b {
+    color: #111827;
+    font-weight: 700;
 }
 
 .card-content code {
-    background-color: #f3f4f6;
-    padding: 2px 6px;
+    background-color: #f1f5f9;
+    padding: 3px 6px;
     border-radius: 4px;
     font-family: 'Courier New', Courier, monospace;
     font-size: 0.9em;
+    color: #e11d48;
+}
+
+.card-content pre {
+    background-color: #1e293b;
+    color: #f8fafc;
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin-bottom: 16px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.card-content pre code {
+    background-color: transparent;
+    padding: 0;
+    color: inherit;
+    border-radius: 0;
 }
 
 .card-content blockquote {
-    border-left: 4px solid #e5e7eb;
+    border-left: 4px solid var(--primary-color);
     padding-left: 16px;
     margin-left: 0;
-    color: #6b7280;
+    margin-bottom: 16px;
+    color: #475569;
     font-style: italic;
+    background-color: #f8fafc;
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
 }
 
 .card-content hr {
@@ -639,13 +704,7 @@ body {
     margin: 24px 0;
 }
 
-/* Specific styling for Approaches (to make them look like cards) */
-.card-content h4 {
-    background: #f9fafb;
-    padding: 8px 12px;
-    border-radius: 6px;
-    border-left: 4px solid var(--primary-color);
-}
+/* Removed duplicated h4 styling as it is now above */
 
 @keyframes slideUp {
     from { opacity: 0; transform: translateY(10px); }
