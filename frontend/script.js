@@ -190,22 +190,31 @@ document.addEventListener('DOMContentLoaded', () => {
             const decoder = new TextDecoder();
             let currentNodeIndex = -1;
 
+            let buffer = '';
+
             while (true) {
                 const { value, done } = await reader.read();
                 if (done) break;
                 
-                const chunk = decoder.decode(value);
-                const lines = chunk.split('\n').filter(line => line.trim() !== '');
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                
+                // The last element is either an incomplete line or an empty string, keep it in the buffer
+                buffer = lines.pop();
                 
                 for (const line of lines) {
+                    if (line.trim() === '') continue;
                     try {
                         const data = JSON.parse(line);
                         
-                        if (data.type === 'state_update') {
-                            if (currentNodeIndex >= 0) updateGraphNode(currentNodeIndex, 'completed');
-                            currentNodeIndex = nodeMapping[data.node];
-                            if (currentNodeIndex !== undefined) updateGraphNode(currentNodeIndex, 'active');
-                        } 
+                        if (data.type === 'node_active') {
+                            const idx = nodeMapping[data.node];
+                            if (idx !== undefined) updateGraphNode(idx, 'active');
+                        }
+                        else if (data.type === 'node_completed') {
+                            const idx = nodeMapping[data.node];
+                            if (idx !== undefined) updateGraphNode(idx, 'completed');
+                        }
                         else if (data.type === 'content_update') {
                             const cardId = `card-${data.section}`;
                             const contentId = `content-${data.section}`;
@@ -219,7 +228,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         }
                         else if (data.type === 'result') {
-                            if (currentNodeIndex >= 0) updateGraphNode(currentNodeIndex, 'completed');
+                            // Ensure the final node is marked completed
+                            updateGraphNode(nodes.length - 1, 'completed');
                             agentStatus.textContent = 'Analysis Complete! All insights displayed below.';
                             downloadReportBtn.style.display = 'flex';
                             chatInput.disabled = false;

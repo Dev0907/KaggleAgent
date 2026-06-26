@@ -38,6 +38,10 @@ class RunRequest(BaseModel):
 graph = create_kaggle_agent()
 
 async def event_generator(request: RunRequest):
+    print(f"\n{'='*50}")
+    print(f"🚀 NEW TASK INITIATED: {request.url}")
+    print(f"{'='*50}\n")
+    
     initial_state = {
         "competition": request.url,
         "messages": [HumanMessage(content=f"Analyze competition: {request.url}")],
@@ -52,23 +56,30 @@ async def event_generator(request: RunRequest):
     
     yield json.dumps({"type": "log", "message": f"Starting task for URL: {request.url}"}) + "\n"
     
+    sequence = ["explanation", "data", "approaches", "winners", "discussion", "code_hunter"]
+    current_index = 0
+    
+    # Notify that the first node is starting
+    yield json.dumps({"type": "node_active", "node": sequence[0]}) + "\n"
+    
     try:
         loop = asyncio.get_running_loop()
         
         # Create an iterator from the synchronous graph stream
-        stream_iterator = graph.stream(initial_state)
+        stream_iterator = iter(graph.stream(initial_state))
+        _sentinel = object()
         
         while True:
-            try:
-                # Retrieve the next output in a non-blocking thread executor
-                output = await loop.run_in_executor(None, next, stream_iterator)
-            except StopIteration:
+            # Retrieve the next output in a non-blocking thread executor
+            output = await loop.run_in_executor(None, lambda: next(stream_iterator, _sentinel))
+            if output is _sentinel:
                 break
                 
             for node_name, state_update in output.items():
-                # Yield state update for the frontend node graph
+                print(f"✅ Node '{node_name}' completed successfully.")
+                # Yield node completed for the frontend node graph
                 yield json.dumps({
-                    "type": "state_update",
+                    "type": "node_completed",
                     "node": node_name
                 }) + "\n"
                 
@@ -81,6 +92,13 @@ async def event_generator(request: RunRequest):
                             "section": section,
                             "content": state_update[section]
                         }) + "\n"
+                
+                current_index += 1
+                if current_index < len(sequence):
+                    yield json.dumps({
+                        "type": "node_active",
+                        "node": sequence[current_index]
+                    }) + "\n"
                 
                 await asyncio.sleep(0.1)
                 
